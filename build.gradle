@@ -1,6 +1,9 @@
 import org.apache.tools.ant.filters.ReplaceTokens
 
-apply plugin: 'java'
+plugins {
+    id 'com.github.johnrengelman.shadow' version '5.2.0'
+    id 'java'
+}
 
 group = 'org.classicsmc'
 version = '1.0-SNAPSHOT'
@@ -34,3 +37,10 @@ processResources {
         filter ReplaceTokens, tokens: [version: version]
     }
 }
+
+shadowJar {
+    relocate 'co.aikar.commands', 'org.classicsmc.cmcquests.acf'
+    relocate 'co.aikar.locales', 'org.classicsmc.cmcquests.locales'
+}
+
+build.dependsOn shadowJar
