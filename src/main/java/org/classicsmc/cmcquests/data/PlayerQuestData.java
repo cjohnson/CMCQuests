@@ -1,7 +1,5 @@
 package org.classicsmc.cmcquests.data;
 
-import org.bukkit.entity.Player;
-
 import java.util.ArrayList;
 import java.util.UUID;
 

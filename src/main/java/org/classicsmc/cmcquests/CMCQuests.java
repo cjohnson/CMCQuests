@@ -8,6 +8,9 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.classicsmc.cmcquests.data.PlayerDataManager;
 import org.classicsmc.cmcquests.data.PlayerQuestData;
+import org.classicsmc.cmcquests.data.QuestDataManager;
+import org.classicsmc.cmcquests.data.gson.exclusion.IgnoreExclusionStrategy;
+import org.classicsmc.cmcquests.utility.IOUtils;
 
 import java.io.File;
 import java.io.FileNotFoundException;
@@ -19,13 +22,20 @@ import java.nio.file.Paths;
 import java.util.stream.Stream;
 
 public final class CMCQuests extends JavaPlugin implements Listener {
-    public static final com.google.gson.Gson GSON = new GsonBuilder().setPrettyPrinting().create();
+    public static final com.google.gson.Gson GSON =
+            new GsonBuilder()
+                    .setPrettyPrinting()
+                    .addSerializationExclusionStrategy(new IgnoreExclusionStrategy())
+                    .addDeserializationExclusionStrategy(new IgnoreExclusionStrategy())
+                    .create();
 
     private PaperCommandManager paperCommandManager;
 
     private PlayerDataManager playerDataManager;
+    private QuestDataManager questDataManager;
 
-    private File dataFile;
+    private File playerDataFile;
+    private File questDataFile;
 
     @Override
     public void onEnable() {
@@ -33,59 +43,48 @@ public final class CMCQuests extends JavaPlugin implements Listener {
 
         paperCommandManager = new PaperCommandManager(this);
 
+        // Player data
         StringBuilder contentBuilder = new StringBuilder();
 
-        dataFile = new File(getDataFolder(), "playerData.json");
+        playerDataFile = new File(getDataFolder(), "playerData.json");
+        questDataFile = new File(getDataFolder(), "questData.json");
 
-        if(!dataFile.exists()) {
-            dataFile.getParentFile().mkdirs();
-            try {
-                dataFile.createNewFile();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+        String playerDataRawJson = IOUtils.getStringFromFile(playerDataFile);
+        String questDataRawJson = IOUtils.getStringFromFile(questDataFile);
 
+        if(playerDataRawJson.isEmpty()) {
             playerDataManager = new PlayerDataManager();
-
-            return;
+        } else {
+            playerDataManager = GSON.fromJson(playerDataRawJson, PlayerDataManager.class);
         }
-
-        try (Stream<String> stream = Files.lines(Paths.get(dataFile.getPath()),
-                StandardCharsets.UTF_8)) {
-            stream.forEach(s -> contentBuilder.append(s).append('\n'));
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-
-        String rawJson = contentBuilder.toString();
-        if(rawJson.isEmpty())
-            playerDataManager = new PlayerDataManager();
-
-        playerDataManager = GSON.fromJson(rawJson, PlayerDataManager.class);
 
         if(playerDataManager == null)
             getLogger().severe("Player Data Manager is null....");
+
+        if(questDataRawJson.isEmpty()) {
+            questDataManager = new QuestDataManager();
+        } else {
+            questDataManager = GSON.fromJson(questDataRawJson, QuestDataManager.class);
+        }
     }
 
     @Override
     public void onDisable() {
-        String rawJson = GSON.toJson(playerDataManager);
-        getLogger().info(rawJson);
+        String playerRawJson = GSON.toJson(playerDataManager);
+        String questRawJson = GSON.toJson(questDataManager);
+
+        //TODO Remove Debug Statements
+        getLogger().info("PLAYERS: " + playerRawJson);
+        getLogger().info("QUESTS: " + questRawJson);
 
         // Save File.
-        try {
-            PrintWriter printWriter = new PrintWriter(dataFile.getPath());
-
-            printWriter.println(rawJson);
-            printWriter.close();
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        }
+        IOUtils.saveStringToFile(playerRawJson, playerDataFile);
+        IOUtils.saveStringToFile(questRawJson, questDataFile);
     }
 
     @EventHandler
     public void onPlayerJoin(PlayerJoinEvent event) {
-        if(playerDataManager.containsKey(event.getPlayer().getUniqueId()))
+        if (playerDataManager.containsKey(event.getPlayer().getUniqueId()))
             return;
 
         playerDataManager.put(event.getPlayer().getUniqueId(), new PlayerQuestData());
