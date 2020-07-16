@@ -2,6 +2,7 @@ package org.classicsmc.cmcquests;
 
 import co.aikar.commands.PaperCommandManager;
 import com.google.gson.GsonBuilder;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerJoinEvent;
@@ -10,6 +11,7 @@ import org.classicsmc.cmcquests.data.PlayerDataManager;
 import org.classicsmc.cmcquests.data.PlayerQuestData;
 import org.classicsmc.cmcquests.data.QuestDataManager;
 import org.classicsmc.cmcquests.data.gson.exclusion.IgnoreExclusionStrategy;
+import org.classicsmc.cmcquests.quest.Quest;
 import org.classicsmc.cmcquests.utility.IOUtils;
 
 import java.io.File;
@@ -43,9 +45,47 @@ public final class CMCQuests extends JavaPlugin implements Listener {
 
         paperCommandManager = new PaperCommandManager(this);
 
-        // Player data
-        StringBuilder contentBuilder = new StringBuilder();
+        handleJsonDeserialization();
 
+        if(!questDataManager.containsQuest("cmcFirstJoinQuest")) {
+            questDataManager.registerQuest(new Quest("cmcFirstJoinQuest", (player) -> {
+                player.sendMessage("Quest Complete: Enter the Classical World...");
+            }));
+        }
+    }
+
+    @Override
+    public void onDisable() {
+        String playerRawJson = GSON.toJson(playerDataManager);
+        String questRawJson = GSON.toJson(questDataManager);
+
+        //TODO Remove Debug Statements
+        getLogger().info("PLAYERS: " + playerRawJson);
+        getLogger().info("QUESTS: " + questRawJson);
+
+        // Save File.
+        IOUtils.saveStringToFile(playerRawJson, playerDataFile);
+        IOUtils.saveStringToFile(questRawJson, questDataFile);
+    }
+
+    @EventHandler
+    public void onPlayerJoin(PlayerJoinEvent event) {
+        Player player = event.getPlayer();
+
+        if (playerDataManager.containsKey(player.getUniqueId()))
+            return;
+
+        playerDataManager.put(player.getUniqueId(), new PlayerQuestData());
+
+        PlayerQuestData playerData = playerDataManager.getPlayer(player);
+        Quest joinQuest = questDataManager.getQuest("cmcFirstJoinQuest");
+
+        if(!playerData.hasCompletedQuest(joinQuest)) {
+            playerData.completeQuest(player, joinQuest);
+        }
+    }
+
+    private void handleJsonDeserialization() {
         playerDataFile = new File(getDataFolder(), "playerData.json");
         questDataFile = new File(getDataFolder(), "questData.json");
 
@@ -66,27 +106,5 @@ public final class CMCQuests extends JavaPlugin implements Listener {
         } else {
             questDataManager = GSON.fromJson(questDataRawJson, QuestDataManager.class);
         }
-    }
-
-    @Override
-    public void onDisable() {
-        String playerRawJson = GSON.toJson(playerDataManager);
-        String questRawJson = GSON.toJson(questDataManager);
-
-        //TODO Remove Debug Statements
-        getLogger().info("PLAYERS: " + playerRawJson);
-        getLogger().info("QUESTS: " + questRawJson);
-
-        // Save File.
-        IOUtils.saveStringToFile(playerRawJson, playerDataFile);
-        IOUtils.saveStringToFile(questRawJson, questDataFile);
-    }
-
-    @EventHandler
-    public void onPlayerJoin(PlayerJoinEvent event) {
-        if (playerDataManager.containsKey(event.getPlayer().getUniqueId()))
-            return;
-
-        playerDataManager.put(event.getPlayer().getUniqueId(), new PlayerQuestData());
     }
 }

@@ -1,5 +1,7 @@
 package org.classicsmc.cmcquests.data;
 
+import org.bukkit.entity.Player;
+
 import java.util.HashMap;
 import java.util.UUID;
 
@@ -10,6 +12,13 @@ public class PlayerDataManager {
         this.playerQuestDataHashMap = new HashMap<>();
     }
 
+    public PlayerQuestData getPlayer(Player player) {
+        if(!playerQuestDataHashMap.containsKey(player.getUniqueId()))
+            return null;
+
+        return playerQuestDataHashMap.get(player.getUniqueId());
+    }
+
     public HashMap<UUID, PlayerQuestData> getPlayerQuestDataHashMap() {
         return playerQuestDataHashMap;
     }
@@ -18,7 +27,7 @@ public class PlayerDataManager {
         this.playerQuestDataHashMap = playerQuestDataHashMap;
     }
 
-    public PlayerQuestData get(Object key) {
+    public PlayerQuestData get(UUID key) {
         return playerQuestDataHashMap.get(key);
     }
 
@@ -26,7 +35,7 @@ public class PlayerDataManager {
         return playerQuestDataHashMap.put(key, value);
     }
 
-    public boolean containsKey(Object key) {
+    public boolean containsKey(UUID key) {
         return playerQuestDataHashMap.containsKey(key);
     }
 }

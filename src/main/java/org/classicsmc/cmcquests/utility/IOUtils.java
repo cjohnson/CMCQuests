@@ -37,6 +37,15 @@ public class IOUtils {
     }
 
     public static void saveStringToFile(String string, File file) {
+        if(!file.exists()) {
+            try {
+                file.getParentFile().mkdirs();
+                file.createNewFile();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+
         try {
             PrintWriter printWriter = new PrintWriter(file.getPath());
 
