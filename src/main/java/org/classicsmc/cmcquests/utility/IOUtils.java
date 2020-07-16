@@ -10,6 +10,8 @@ import java.nio.file.Paths;
 import java.util.stream.Stream;
 
 public class IOUtils {
+    private static final String empty = "";
+
     public static String getStringFromFile(File file) {
         if(!file.exists()) {
             try {
@@ -19,7 +21,7 @@ public class IOUtils {
                 e.printStackTrace();
             }
 
-            return "";
+            return empty;
         }
 
         StringBuilder contentBuilder = new StringBuilder();
